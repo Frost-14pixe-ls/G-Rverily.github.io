@@ -1,9 +1,48 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G-R verily Lodge</title>
+    <title>G-R Verily Lodge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -22,6 +61,10 @@
         .nav-link.active {
             @apply text-blue-600 font-bold;
         }
+        /* Ensure mobile menu slides in smoothly */
+        #mobile-menu {
+            transition: transform 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -30,21 +73,36 @@
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="#home" class="text-3xl font-bold text-gray-900 nav-link">G-R Verily Lodge</a>
+            <!-- Hamburger Menu Button (Visible on Mobile) -->
+            <button id="menu-toggle" class="md:hidden text-gray-600 focus:outline-none" aria-label="Toggle navigation menu">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <!-- Desktop Menu -->
             <div class="hidden md:flex space-x-8 text-gray-600 font-semibold">
                 <a href="#home" class="hover:text-gray-900 transition-colors duration-300 nav-link">Home</a>
                 <a href="#about" class="hover:text-gray-900 transition-colors duration-300 nav-link">About</a>
                 <a href="#amenities" class="hover:text-gray-900 transition-colors duration-300 nav-link">Amenities</a>
                 <a href="#gallery" class="hover:text-gray-900 transition-colors duration-300 nav-link">Gallery</a>
                 <a href="#contact" class="hover:text-gray-900 transition-colors duration-300 nav-link">Contact</a>
+                <a href="#book" class="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition-colors duration-300 transform hover:scale-105 nav-link">Book Now</a>
             </div>
-            <a href="#book" class="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition-colors duration-300 transform hover:scale-105 hidden md:block nav-link">Book Now</a>
         </nav>
+        <!-- Mobile Menu (Hidden by Default) -->
+        <div id="mobile-menu" class="md:hidden bg-white shadow-lg transform -translate-x-full absolute top-16 left-0 w-full h-screen flex flex-col items-center space-y-4 py-6 text-gray-600 font-semibold">
+            <a href="#home" class="hover:text-gray-900 transition-colors duration-300 nav-link py-2">Home</a>
+            <a href="#about" class="hover:text-gray-900 transition-colors duration-300 nav-link py-2">About</a>
+            <a href="#amenities" class="hover:text-gray-900 transition-colors duration-300 nav-link py-2">Amenities</a>
+            <a href="#gallery" class="hover:text-gray-900 transition-colors duration-300 nav-link py-2">Gallery</a>
+            <a href="#contact" class="hover:text-gray-900 transition-colors duration-300 nav-link py-2">Contact</a>
+            <a href="#book" class="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition-colors duration-300 transform hover:scale-105 nav-link">Book Now</a>
+        </div>
     </header>
 
     <main>
         <!-- Home Page Content -->
         <div id="home" class="page-content active">
-            <!-- Hero Section -->
             <section class="relative h-[60vh] md:h-[80vh] bg-cover bg-center flex items-center justify-center text-center text-white" style="background-image: url('https://placehold.co/1920x1080/4f5d75/ffffff?text=Lodge+Exterior');">
                 <div class="absolute inset-0 bg-black opacity-40"></div>
                 <div class="relative z-10 p-6 md:p-12 max-w-4xl mx-auto rounded-lg backdrop-blur-sm bg-black bg-opacity-30 shadow-lg">
@@ -70,7 +128,6 @@
                             <h3 class="text-3xl font-bold mb-4 text-gray-900">A Place to Unwind</h3>
                             <p class="text-gray-700 leading-relaxed mb-6">
                                 G-R Verily Lodge offes you a stay you will remember thanks to its simple style and assured comfort.
-                    
                             </p>
                             <p class="text-gray-700 leading-relaxed">
                                 Whether you're seeking a quiet solo retreat, a romantic getaway, or a fun-filled family vacation, our doors are open to you. Enjoy the breathtaking views and the warm hospitality that makes G-R Verily Lodge a home of tranquility and leisure.  KARIBUNI SANA
@@ -87,7 +144,6 @@
                 <div class="container mx-auto px-6 max-w-6xl text-center">
                     <h2 class="text-4xl md:text-5xl font-extrabold mb-12 text-gray-900">Our Amenities</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        <!-- Amenity Card 1 -->
                         <div class="bg-white p-8 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-500">
                             <div class="text-blue-600 mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,7 +153,6 @@
                             <h3 class="text-2xl font-bold mb-2">self contained rooms</h3>
                             <p class="text-gray-600">Offering you the most comfortable personal space you need</p>
                         </div>
-                        <!-- Amenity Card 2 -->
                         <div class="bg-white p-8 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-500">
                             <div class="text-blue-600 mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,7 +162,6 @@
                             <h3 class="text-2xl font-bold mb-2">24-Hour Room Service</h3>
                             <p class="text-gray-600">Our staff is available around the clock to cater to your needs and requests.</p>
                         </div>
-                        <!-- Amenity Card 3 -->
                         <div class="bg-white p-8 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-500">
                             <div class="text-blue-600 mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -194,11 +248,11 @@
                         </div>
                         <div class="text-center p-6 bg-white rounded-2xl shadow-lg w-full md:w-1/3 transform hover:scale-105 transition-transform duration-500">
                             <h3 class="font-bold text-xl mb-2">Phone Number</h3>
-                            <p class="text-gray-600">+255 754 595 058</p>
+                            <p class="text-gray-600">+255 681 111 149</p>
                         </div>
                         <div class="text-center p-6 bg-white rounded-2xl shadow-lg w-full md:w-1/3 transform hover:scale-105 transition-transform duration-500">
                             <h3 class="font-bold text-xl mb-2">Email</h3>
-                            <a href="mailto:rwegasirahubert@gmail.com" class="text-yellow-600 hover:underline">rwegasirahubert@gmail.com</a>
+                            <a href="mailto:g.rverilylodge2025@gmail.com" class="text-yellow-600 hover:underline">g.rverilylodge2025@gmail.com</a>
                         </div>
                     </div>
                 </div>
@@ -210,7 +264,7 @@
     <footer class="bg-gray-900 text-white py-8 text-center">
         <div class="container mx-auto px-6">
             <p>&copy; 2025 G-R Verily Lodge. All rights reserved.</p>
-             <p>&copy; 2025 FROST TECHNOLOGIES. All rights reserved.</p>
+            <p>&copy; 2025 FROST TECHNOLOGIES. All rights reserved.</p>
         </div>
     </footer>
 
@@ -218,18 +272,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             const navLinks = document.querySelectorAll('.nav-link');
             const pageContents = document.querySelectorAll('.page-content');
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
 
             function showPage(pageId) {
-                // Hide all pages
                 pageContents.forEach(page => page.classList.remove('active'));
-                
-                // Show the requested page
                 const targetPage = document.getElementById(pageId.substring(1));
                 if (targetPage) {
                     targetPage.classList.add('active');
                 }
-
-                // Update active link class
                 navLinks.forEach(link => {
                     if (link.getAttribute('href') === pageId) {
                         link.classList.add('active');
@@ -237,6 +288,8 @@
                         link.classList.remove('active');
                     }
                 });
+                // Close mobile menu after clicking a link
+                mobileMenu.classList.add('-translate-x-full');
             }
 
             navLinks.forEach(link => {
@@ -245,6 +298,11 @@
                     const pageId = link.getAttribute('href');
                     showPage(pageId);
                 });
+            });
+
+            // Toggle mobile menu
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('-translate-x-full');
             });
 
             // Initial page load based on URL hash
@@ -264,7 +322,6 @@
                         checkOut: document.getElementById('check-out').value,
                         guests: document.getElementById('guests').value
                     });
-                    
                     messageElement.textContent = 'Thank you for your booking! We will be in touch shortly.';
                     messageElement.classList.remove('hidden');
                     form.reset();
@@ -275,3 +332,4 @@
     </script>
 </body>
 </html>
+
